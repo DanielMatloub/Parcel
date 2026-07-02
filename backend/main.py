@@ -17,6 +17,10 @@ app.add_middleware(
 )
 
 def get_db():
+    import os
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        return psycopg2.connect(db_url)
     return psycopg2.connect(
         host="localhost", dbname="zoning", user="postgres", password="pass"
     )
