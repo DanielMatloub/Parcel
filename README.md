@@ -49,9 +49,9 @@ npm start
 ```
 
 Add a `.env` file in `backend/` with:
-
+```bash
 ANTHROPIC_API_KEY=your-key-here
-
+```
 ## Data
 
 Zoning data sourced from [DataSF](https://data.sfgov.org/Geographic-Locations-and-Boundaries/Zoning-Map-Zoning-Districts/3i4a-hu95) — 10,617 zoning districts covering all of San Francisco.
