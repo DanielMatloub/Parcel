@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import ReactMarkdown from "react-markdown";
@@ -21,6 +21,13 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   async function handleMapClick({ lat, lng }) {
     setMarker({ lat, lng });
@@ -33,19 +40,79 @@ export default function App() {
     setLoading(false);
   }
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", fontFamily: "sans-serif" }}>
-      {/* Header */}
-      <div style={{ padding: "12px 16px", background: "#fff", borderBottom: "1px solid #ddd", display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 1000 }}>
-        <div>
+  const ResultPanel = () => (
+    <>
+      {loading && <p style={{ color: "#888", textAlign: "center" }}>Looking up zoning...</p>}
+      {result && !loading && (
+        result.error ? (
+          <p style={{ color: "#888", textAlign: isMobile ? "center" : "left" }}>{result.error}</p>
+        ) : (
+          <>
+            <div style={{ background: "#f5f5f5", borderRadius: "8px", padding: "12px 16px", marginBottom: "12px" }}>
+              <div style={{ fontSize: "11px", color: "#888", marginBottom: "2px" }}>Zone code</div>
+              <div style={{ fontSize: "22px", fontWeight: "700" }}>{result.zone_code}</div>
+              <div style={{ fontSize: "12px", color: "#555", marginTop: "2px" }}>{result.district_name}</div>
+            </div>
+            <div style={{ fontSize: "14px", lineHeight: "1.6", color: "#333", marginBottom: "12px" }}>
+              <ReactMarkdown>{result.interpretation}</ReactMarkdown>
+            </div>
+            {result.url && (
+              <a href={result.url} target="_blank" rel="noreferrer" style={{ fontSize: "13px", color: "#0066cc" }}>
+                View official planning code →
+              </a>
+            )}
+          </>
+        )
+      )}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100vh", fontFamily: "sans-serif" }}>
+        <div style={{ padding: "12px 16px", background: "#fff", borderBottom: "1px solid #ddd", display: "flex", alignItems: "center", zIndex: 1000 }}>
           <span style={{ fontWeight: "700", fontSize: "18px" }}>Parcel</span>
           <span style={{ fontSize: "13px", color: "#888", marginLeft: "8px" }}>SF Zoning Lookup</span>
         </div>
+        <div style={{ flex: 1, position: "relative" }}>
+          <MapContainer center={[37.7749, -122.4194]} zoom={13} style={{ height: "100%", width: "100%" }}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <ClickHandler onMapClick={handleMapClick} />
+            {marker && (
+              <Marker position={[marker.lat, marker.lng]}>
+                <Popup>{result?.zone_code || "Loading..."}</Popup>
+              </Marker>
+            )}
+          </MapContainer>
+          {!panelOpen && (
+            <div style={{
+              position: "absolute", bottom: "24px", left: "50%", transform: "translateX(-50%)",
+              background: "rgba(0,0,0,0.7)", color: "#fff", padding: "10px 18px",
+              borderRadius: "24px", fontSize: "14px", zIndex: 1000, whiteSpace: "nowrap"
+            }}>
+              Tap anywhere on the map
+            </div>
+          )}
+          {panelOpen && (
+            <div style={{
+              position: "absolute", bottom: 0, left: 0, right: 0,
+              background: "#fff", borderRadius: "16px 16px 0 0",
+              boxShadow: "0 -4px 24px rgba(0,0,0,0.15)",
+              padding: "16px", maxHeight: "55vh", overflowY: "auto", zIndex: 1000
+            }}>
+              <div style={{ width: "40px", height: "4px", background: "#ddd", borderRadius: "2px", margin: "0 auto 16px", cursor: "pointer" }} onClick={() => setPanelOpen(false)} />
+              <ResultPanel />
+            </div>
+          )}
+        </div>
       </div>
+    );
+  }
 
-      {/* Map */}
-      <div style={{ flex: 1, position: "relative" }}>
-        <MapContainer center={[37.7749, -122.4194]} zoom={13} style={{ height: "100%", width: "100%" }}>
+  return (
+    <div style={{ display: "flex", height: "100vh", fontFamily: "sans-serif" }}>
+      <div style={{ flex: 1 }}>
+        <MapContainer center={[37.7749, -122.4194]} zoom={13} style={{ height: "100%" }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ClickHandler onMapClick={handleMapClick} />
           {marker && (
@@ -54,57 +121,11 @@ export default function App() {
             </Marker>
           )}
         </MapContainer>
-
-        {/* Hint */}
-        {!panelOpen && (
-          <div style={{
-            position: "absolute", bottom: "24px", left: "50%", transform: "translateX(-50%)",
-            background: "rgba(0,0,0,0.7)", color: "#fff", padding: "10px 18px",
-            borderRadius: "24px", fontSize: "14px", zIndex: 1000, whiteSpace: "nowrap"
-          }}>
-            Tap anywhere on the map
-          </div>
-        )}
-
-        {/* Bottom sheet */}
-        {panelOpen && (
-          <div style={{
-            position: "absolute", bottom: 0, left: 0, right: 0,
-            background: "#fff", borderRadius: "16px 16px 0 0",
-            boxShadow: "0 -4px 24px rgba(0,0,0,0.15)",
-            padding: "16px", maxHeight: "55vh", overflowY: "auto",
-            zIndex: 1000
-          }}>
-            {/* Drag handle */}
-            <div style={{ width: "40px", height: "4px", background: "#ddd", borderRadius: "2px", margin: "0 auto 16px" }} onClick={() => setPanelOpen(false)} />
-
-            {loading && <p style={{ color: "#888", textAlign: "center" }}>Looking up zoning...</p>}
-
-            {result && !loading && (
-              result.error ? (
-                <p style={{ color: "#888", textAlign: "center" }}>{result.error}</p>
-              ) : (
-                <>
-                  <div style={{ background: "#f5f5f5", borderRadius: "8px", padding: "12px 16px", marginBottom: "12px" }}>
-                    <div style={{ fontSize: "11px", color: "#888", marginBottom: "2px" }}>Zone code</div>
-                    <div style={{ fontSize: "22px", fontWeight: "700" }}>{result.zone_code}</div>
-                    <div style={{ fontSize: "12px", color: "#555", marginTop: "2px" }}>{result.district_name}</div>
-                  </div>
-
-                  <div style={{ fontSize: "14px", lineHeight: "1.6", color: "#333", marginBottom: "12px" }}>
-                    <ReactMarkdown>{result.interpretation}</ReactMarkdown>
-                  </div>
-
-                  {result.url && (
-                    <a href={result.url} target="_blank" rel="noreferrer" style={{ fontSize: "13px", color: "#0066cc" }}>
-                      View official planning code →
-                    </a>
-                  )}
-                </>
-              )
-            )}
-          </div>
-        )}
+      </div>
+      <div style={{ width: "380px", padding: "24px", overflowY: "auto", background: "#f9f9f9", borderLeft: "1px solid #ddd" }}>
+        <h2 style={{ marginTop: 0 }}>SF Zoning Lookup</h2>
+        <p style={{ color: "#666", fontSize: "14px" }}>Click anywhere on the map to look up zoning information for that location.</p>
+        <ResultPanel />
       </div>
     </div>
   );
