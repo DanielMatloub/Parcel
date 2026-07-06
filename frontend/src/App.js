@@ -26,7 +26,7 @@ export default function App() {
     setMarker({ lat, lng });
     setLoading(true);
     setResult(null);
-    const res = await fetch(`http://localhost:8000/zone?lat=${lat}&lng=${lng}`);
+    const res = await fetch(`https://parcel-production-970b.up.railway.app/zone?lat=${lat}&lng=${lng}`);
     const data = await res.json();
     setResult(data);
     setLoading(false);
