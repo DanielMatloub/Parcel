@@ -52,6 +52,10 @@ Key restrictions: [2-3 specific limits]"""
 
 @app.get("/zone")
 def get_zone(lat: float, lng: float):
+    # SF bounding box check
+    if not (37.63 <= lat <= 37.93 and -122.53 <= lng <= -122.33):
+        return {"error": "Parcel currently only covers San Francisco. More cities coming soon!"}
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
@@ -67,7 +71,7 @@ def get_zone(lat: float, lng: float):
     conn.close()
 
     if not row:
-        return {"error": "No zoning district found at this location"}
+        return {"error": "No zoning district found here. Try clicking on a building or lot rather than a street."}
 
     interpretation = interpret_zone(row[0], row[1])
 
