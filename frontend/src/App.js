@@ -55,7 +55,7 @@ export default function App() {
         {result && !loading && (
           <div>
             {result.error ? (
-              <p style={{ color: "red" }}>{result.error}</p>
+              <p style={{ color: "#888" }}>No zoning district found here. Try clicking on a building or lot rather than a street.</p>
             ) : (
               <>
                 <div style={{ background: "#fff", border: "1px solid #ddd", borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
