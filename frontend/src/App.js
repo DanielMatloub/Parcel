@@ -55,7 +55,7 @@ export default function App() {
     );
     const data = await res.json();
     if (data.length === 0) {
-      setResult({ error: "Address not found. Try a more specific address." });
+      setResult({ error: "not_found", message: "Address not found. Try a more specific address." });
       setPanelOpen(true);
       return;
     }
@@ -66,12 +66,36 @@ export default function App() {
     handleMapClick({ lat: parseFloat(lat), lng: parseFloat(lon) });
   }
 
+  async function handleCheckout() {
+    const res = await fetch("https://parcel-production-970b.up.railway.app/create-checkout-session", {
+      method: "POST"
+    });
+    const data = await res.json();
+    window.location.href = data.url;
+  }
+
   const ResultPanel = () => (
     <>
       {loading && <p style={{ color: "#888", textAlign: "center" }}>Looking up zoning...</p>}
       {result && !loading && (
-        result.error ? (
-          <p style={{ color: "#888", textAlign: isMobile ? "center" : "left" }}>{result.error}</p>
+        result.error === "limit_reached" ? (
+          <div style={{ textAlign: "center", padding: "16px" }}>
+            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🔒</div>
+            <p style={{ fontWeight: "600", fontSize: "16px", marginBottom: "8px" }}>You've used your 30 free searches</p>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "20px" }}>Unlock unlimited searches for a one-time payment of $5.</p>
+            <button
+              onClick={handleCheckout}
+              style={{
+                background: "#222", color: "#fff", border: "none",
+                padding: "12px 24px", borderRadius: "8px", fontSize: "15px",
+                cursor: "pointer", width: "100%"
+              }}
+            >
+              Unlock unlimited searches — $5
+            </button>
+          </div>
+        ) : result.error ? (
+          <p style={{ color: "#888", textAlign: isMobile ? "center" : "left" }}>{result.message || result.error}</p>
         ) : (
           <>
             <div style={{ background: "#f5f5f5", borderRadius: "8px", padding: "12px 16px", marginBottom: "12px" }}>
@@ -86,6 +110,11 @@ export default function App() {
               <a href={result.url} target="_blank" rel="noreferrer" style={{ fontSize: "13px", color: "#0066cc" }}>
                 View official planning code →
               </a>
+            )}
+            {result.searches_remaining !== undefined && result.searches_remaining <= 5 && (
+              <p style={{ color: "#888", fontSize: "12px", marginTop: "12px" }}>
+                {result.searches_remaining} free {result.searches_remaining === 1 ? "search" : "searches"} remaining.
+              </p>
             )}
           </>
         )
