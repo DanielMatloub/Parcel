@@ -17,7 +17,6 @@ app.add_middleware(
 )
 
 def get_db():
-    import os
     db_url = os.getenv("DATABASE_URL")
     if db_url:
         return psycopg2.connect(db_url)
@@ -25,7 +24,44 @@ def get_db():
         host="localhost", dbname="zoning", user="postgres", password="pass"
     )
 
+def init_cache():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS zone_cache (
+            zone_code TEXT PRIMARY KEY,
+            interpretation TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def get_cached_interpretation(zone_code: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT interpretation FROM zone_cache WHERE zone_code = %s", (zone_code,))
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else None
+
+def cache_interpretation(zone_code: str, interpretation: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO zone_cache (zone_code, interpretation)
+        VALUES (%s, %s)
+        ON CONFLICT (zone_code) DO NOTHING
+    """, (zone_code, interpretation))
+    conn.commit()
+    conn.close()
+
 def interpret_zone(zone_code: str, district_name: str) -> str:
+    cached = get_cached_interpretation(zone_code)
+    if cached:
+        print(f"Cache hit: {zone_code}")
+        return cached
+
+    print(f"Cache miss: {zone_code} — calling Claude")
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     message = client.messages.create(
         model="claude-sonnet-4-6",
@@ -48,11 +84,16 @@ Key restrictions: [2-3 specific limits]"""
             }
         ]
     )
-    return message.content[0].text
+    interpretation = message.content[0].text
+    cache_interpretation(zone_code, interpretation)
+    return interpretation
+
+@app.on_event("startup")
+def startup():
+    init_cache()
 
 @app.get("/zone")
 def get_zone(lat: float, lng: float):
-    # SF bounding box check
     if not (37.63 <= lat <= 37.93 and -122.53 <= lng <= -122.33):
         return {"error": "Parcel currently only covers San Francisco. More cities coming soon!"}
 
