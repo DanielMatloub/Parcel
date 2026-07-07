@@ -10,7 +10,7 @@ load_dotenv()
 
 app = FastAPI()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-FREE_LIMIT = 30
+FREE_LIMIT = 1
 
 app.add_middleware(
     CORSMiddleware,
