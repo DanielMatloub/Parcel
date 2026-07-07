@@ -16,6 +16,12 @@ function ClickHandler({ onMapClick }) {
   return null;
 }
 
+const searchBarStyle = {
+  input: { flex: 1, padding: "8px 12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px" },
+  button: { padding: "8px 14px", borderRadius: "8px", background: "#222", color: "#fff", border: "none", cursor: "pointer", fontSize: "14px" },
+  wrapper: { display: "flex", gap: "8px" }
+};
+
 export default function App() {
   const [marker, setMarker] = useState(null);
   const [result, setResult] = useState(null);
@@ -60,25 +66,6 @@ export default function App() {
     handleMapClick({ lat: parseFloat(lat), lng: parseFloat(lon) });
   }
 
-  const SearchBar = () => (
-    <div style={{ display: "flex", gap: "8px" }}>
-      <input
-        type="text"
-        placeholder="Search an address in SF..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        style={{ flex: 1, padding: "8px 12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px" }}
-      />
-      <button
-        onClick={handleSearch}
-        style={{ padding: "8px 14px", borderRadius: "8px", background: "#222", color: "#fff", border: "none", cursor: "pointer", fontSize: "14px" }}
-      >
-        Go
-      </button>
-    </div>
-  );
-
   const ResultPanel = () => (
     <>
       {loading && <p style={{ color: "#888", textAlign: "center" }}>Looking up zoning...</p>}
@@ -114,7 +101,17 @@ export default function App() {
             <span style={{ fontWeight: "700", fontSize: "18px" }}>Parcel</span>
             <span style={{ fontSize: "13px", color: "#888", marginLeft: "8px" }}>SF Zoning Lookup</span>
           </div>
-          <SearchBar />
+          <div style={searchBarStyle.wrapper}>
+            <input
+              type="text"
+              placeholder="Search an address in SF..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              style={searchBarStyle.input}
+            />
+            <button onClick={handleSearch} style={searchBarStyle.button}>Go</button>
+          </div>
         </div>
         <div style={{ flex: 1, position: "relative" }}>
           <MapContainer center={[37.7749, -122.4194]} zoom={13} style={{ height: "100%", width: "100%" }} ref={mapRef}>
@@ -166,8 +163,16 @@ export default function App() {
       </div>
       <div style={{ width: "380px", padding: "24px", overflowY: "auto", background: "#f9f9f9", borderLeft: "1px solid #ddd" }}>
         <h2 style={{ marginTop: 0 }}>Parcel</h2>
-        <div style={{ marginBottom: "16px" }}>
-          <SearchBar />
+        <div style={{ ...searchBarStyle.wrapper, marginBottom: "16px" }}>
+          <input
+            type="text"
+            placeholder="Search an address in SF..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            style={searchBarStyle.input}
+          />
+          <button onClick={handleSearch} style={searchBarStyle.button}>Go</button>
         </div>
         <p style={{ color: "#666", fontSize: "14px" }}>Or click anywhere on the map.</p>
         <ResultPanel />
