@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import ReactMarkdown from "react-markdown";
@@ -22,6 +22,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [searchQuery, setSearchQuery] = useState("");
+  const mapRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -39,6 +41,43 @@ export default function App() {
     setResult(data);
     setLoading(false);
   }
+
+  async function handleSearch() {
+    if (!searchQuery.trim()) return;
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ", San Francisco, CA")}`
+    );
+    const data = await res.json();
+    if (data.length === 0) {
+      setResult({ error: "Address not found. Try a more specific address." });
+      setPanelOpen(true);
+      return;
+    }
+    const { lat, lon } = data[0];
+    if (mapRef.current) {
+      mapRef.current.flyTo([parseFloat(lat), parseFloat(lon)], 16);
+    }
+    handleMapClick({ lat: parseFloat(lat), lng: parseFloat(lon) });
+  }
+
+  const SearchBar = () => (
+    <div style={{ display: "flex", gap: "8px" }}>
+      <input
+        type="text"
+        placeholder="Search an address in SF..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+        style={{ flex: 1, padding: "8px 12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px" }}
+      />
+      <button
+        onClick={handleSearch}
+        style={{ padding: "8px 14px", borderRadius: "8px", background: "#222", color: "#fff", border: "none", cursor: "pointer", fontSize: "14px" }}
+      >
+        Go
+      </button>
+    </div>
+  );
 
   const ResultPanel = () => (
     <>
@@ -70,12 +109,15 @@ export default function App() {
   if (isMobile) {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100vh", fontFamily: "sans-serif" }}>
-        <div style={{ padding: "12px 16px", background: "#fff", borderBottom: "1px solid #ddd", display: "flex", alignItems: "center", zIndex: 1000 }}>
-          <span style={{ fontWeight: "700", fontSize: "18px" }}>Parcel</span>
-          <span style={{ fontSize: "13px", color: "#888", marginLeft: "8px" }}>SF Zoning Lookup</span>
+        <div style={{ padding: "12px 16px", background: "#fff", borderBottom: "1px solid #ddd", zIndex: 1000 }}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}>
+            <span style={{ fontWeight: "700", fontSize: "18px" }}>Parcel</span>
+            <span style={{ fontSize: "13px", color: "#888", marginLeft: "8px" }}>SF Zoning Lookup</span>
+          </div>
+          <SearchBar />
         </div>
         <div style={{ flex: 1, position: "relative" }}>
-          <MapContainer center={[37.7749, -122.4194]} zoom={13} style={{ height: "100%", width: "100%" }}>
+          <MapContainer center={[37.7749, -122.4194]} zoom={13} style={{ height: "100%", width: "100%" }} ref={mapRef}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <ClickHandler onMapClick={handleMapClick} />
             {marker && (
@@ -112,7 +154,7 @@ export default function App() {
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "sans-serif" }}>
       <div style={{ flex: 1 }}>
-        <MapContainer center={[37.7749, -122.4194]} zoom={13} style={{ height: "100%" }}>
+        <MapContainer center={[37.7749, -122.4194]} zoom={13} style={{ height: "100%" }} ref={mapRef}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ClickHandler onMapClick={handleMapClick} />
           {marker && (
@@ -123,8 +165,11 @@ export default function App() {
         </MapContainer>
       </div>
       <div style={{ width: "380px", padding: "24px", overflowY: "auto", background: "#f9f9f9", borderLeft: "1px solid #ddd" }}>
-        <h2 style={{ marginTop: 0 }}>SF Zoning Lookup</h2>
-        <p style={{ color: "#666", fontSize: "14px" }}>Click anywhere on the map to look up zoning information for that location.</p>
+        <h2 style={{ marginTop: 0 }}>Parcel</h2>
+        <div style={{ marginBottom: "16px" }}>
+          <SearchBar />
+        </div>
+        <p style={{ color: "#666", fontSize: "14px" }}>Or click anywhere on the map.</p>
         <ResultPanel />
       </div>
     </div>
