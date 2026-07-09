@@ -24,8 +24,8 @@ jobs:
 
       - name: Download latest SF zoning data
         run: |
-          curl -L "https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&type=Shapefile" -o sf_zoning.zip
-          unzip -o sf_zoning.zip -d sf_zoning
+          curl -L "https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&fileType=geojson&type=GeoJSON" -o sf_zoning.geojson
+          echo "Downloaded $(wc -c < sf_zoning.geojson) bytes"
 
       - name: Update database
         env:
@@ -33,20 +33,14 @@ jobs:
         run: |
           python3 - <<'EOF'
           import geopandas as gpd
-          import sqlalchemy
-          from sqlalchemy import create_engine, text
           import os
-          import glob
+          from sqlalchemy import create_engine, text
 
           db_url = os.getenv("DATABASE_URL").replace("postgres://", "postgresql://")
           engine = create_engine(db_url)
 
-          shp_files = glob.glob("sf_zoning/*.shp")
-          if not shp_files:
-              raise Exception("No shapefile found")
-
-          print(f"Reading {shp_files[0]}...")
-          gdf = gpd.read_file(shp_files[0])
+          print("Reading GeoJSON...")
+          gdf = gpd.read_file("sf_zoning.geojson")
           gdf = gdf.to_crs(epsg=4326)
 
           print("Writing to database...")
