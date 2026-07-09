@@ -1,0 +1,82 @@
+name: Update SF Zoning Data
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'  # 6am on the 1st of every month
+  workflow_dispatch:  # allows manual trigger from GitHub
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install geopandas sqlalchemy psycopg2-binary geoalchemy2
+
+      - name: Download latest SF zoning data
+        run: |
+          curl -L "https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&type=Shapefile" -o sf_zoning.zip
+          unzip -o sf_zoning.zip -d sf_zoning
+
+      - name: Update database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python3 - <<'EOF'
+          import geopandas as gpd
+          import sqlalchemy
+          from sqlalchemy import create_engine, text
+          import os
+          import glob
+
+          db_url = os.getenv("DATABASE_URL").replace("postgres://", "postgresql://")
+          engine = create_engine(db_url)
+
+          shp_files = glob.glob("sf_zoning/*.shp")
+          if not shp_files:
+              raise Exception("No shapefile found")
+
+          print(f"Reading {shp_files[0]}...")
+          gdf = gpd.read_file(shp_files[0])
+          gdf = gdf.to_crs(epsg=4326)
+
+          print("Writing to database...")
+          gdf.to_postgis("zoning_districts", engine, if_exists="replace", index=False)
+
+          print("Clearing interpretation cache...")
+          with engine.connect() as conn:
+              conn.execute(text("DELETE FROM zone_cache"))
+              conn.commit()
+
+          print(f"Done! {len(gdf)} districts updated.")
+          EOF
+
+      - name: Recreate spatial index
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python3 - <<'EOF'
+          import sqlalchemy
+          from sqlalchemy import create_engine, text
+          import os
+
+          db_url = os.getenv("DATABASE_URL").replace("postgres://", "postgresql://")
+          engine = create_engine(db_url)
+
+          with engine.connect() as conn:
+              conn.execute(text("""
+                  CREATE INDEX IF NOT EXISTS zoning_districts_geometry_idx
+                  ON zoning_districts USING GIST (geometry)
+              """))
+              conn.commit()
+          print("Spatial index recreated.")
+          EOF
