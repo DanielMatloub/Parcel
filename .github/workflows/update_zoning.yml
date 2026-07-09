@@ -24,8 +24,9 @@ jobs:
 
       - name: Download latest SF zoning data
         run: |
-          curl -L "https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&fileType=geojson&type=GeoJSON" -o sf_zoning.geojson
+          curl -L "https://data.sfgov.org/resource/3i4a-hu95.geojson?$limit=15000" -o sf_zoning.geojson
           echo "Downloaded $(wc -c < sf_zoning.geojson) bytes"
+          head -c 200 sf_zoning.geojson
 
       - name: Update database
         env:
