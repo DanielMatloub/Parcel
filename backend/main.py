@@ -94,7 +94,7 @@ def get_property_details(lat: float, lng: float) -> dict:
     try:
         url = "https://data.sfgov.org/resource/wv5m-vpq2.json"
         params = {
-            "$where": f"within_circle(the_geom,{lat},{lng},50)",
+            "$where": f"within_circle(the_geom,{lat},{lng},100)",
             "$order": "closed_roll_year DESC",
             "$limit": 1
         }
