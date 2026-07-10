@@ -7,3 +7,4 @@ anthropic
 python-dotenv
 geoalchemy2
 stripe
+requests
