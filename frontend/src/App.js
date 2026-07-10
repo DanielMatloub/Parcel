@@ -29,6 +29,7 @@ export default function App() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function App() {
     setMarker({ lat, lng });
     setLoading(true);
     setResult(null);
+    setShowPropertyDetails(false);
     setPanelOpen(true);
     const res = await fetch(`https://parcel-production-970b.up.railway.app/zone?lat=${lat}&lng=${lng}`);
     const data = await res.json();
@@ -73,6 +75,58 @@ export default function App() {
     const data = await res.json();
     window.location.href = data.url;
   }
+
+  const PropertyDetails = ({ details }) => (
+    <div style={{ marginTop: "16px" }}>
+      <button
+        onClick={() => setShowPropertyDetails(!showPropertyDetails)}
+        style={{
+          background: "none", border: "1px solid #ddd", borderRadius: "8px",
+          padding: "8px 14px", fontSize: "13px", cursor: "pointer",
+          width: "100%", textAlign: "left", color: "#333"
+        }}
+      >
+        {showPropertyDetails ? "▾" : "▸"} Property Details
+      </button>
+      {showPropertyDetails && (
+        <div style={{
+          background: "#f9f9f9", borderRadius: "8px", padding: "12px 16px",
+          marginTop: "8px", fontSize: "13px", lineHeight: "1.8"
+        }}>
+          {details.assessed_total_value > 0 && (
+            <div><span style={{ color: "#888" }}>Assessed value</span><span style={{ float: "right", fontWeight: "600" }}>${details.assessed_total_value.toLocaleString()}</span></div>
+          )}
+          {details.assessed_land_value > 0 && (
+            <div><span style={{ color: "#888" }}>Land value</span><span style={{ float: "right" }}>${details.assessed_land_value.toLocaleString()}</span></div>
+          )}
+          {details.assessed_improvement_value > 0 && (
+            <div><span style={{ color: "#888" }}>Improvement value</span><span style={{ float: "right" }}>${details.assessed_improvement_value.toLocaleString()}</span></div>
+          )}
+          {details.use_definition && (
+            <div><span style={{ color: "#888" }}>Use type</span><span style={{ float: "right" }}>{details.use_definition}</span></div>
+          )}
+          {details.year_built && details.year_built !== "0" && (
+            <div><span style={{ color: "#888" }}>Year built</span><span style={{ float: "right" }}>{details.year_built}</span></div>
+          )}
+          {details.lot_area && parseFloat(details.lot_area) > 0 && (
+            <div><span style={{ color: "#888" }}>Lot area</span><span style={{ float: "right" }}>{parseFloat(details.lot_area).toLocaleString()} sq ft</span></div>
+          )}
+          {details.stories && parseFloat(details.stories) > 0 && (
+            <div><span style={{ color: "#888" }}>Stories</span><span style={{ float: "right" }}>{details.stories}</span></div>
+          )}
+          {details.neighborhood && (
+            <div><span style={{ color: "#888" }}>Neighborhood</span><span style={{ float: "right" }}>{details.neighborhood}</span></div>
+          )}
+          {details.last_sale_date && (
+            <div><span style={{ color: "#888" }}>Last sale</span><span style={{ float: "right" }}>{details.last_sale_date}</span></div>
+          )}
+          <div style={{ marginTop: "8px", fontSize: "11px", color: "#aaa" }}>
+            Data from SF Assessor-Recorder, {details.data_year}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const ResultPanel = () => (
     <>
@@ -110,6 +164,9 @@ export default function App() {
               <a href={result.url} target="_blank" rel="noreferrer" style={{ fontSize: "13px", color: "#0066cc" }}>
                 View official planning code →
               </a>
+            )}
+            {result.property_details && (
+              <PropertyDetails details={result.property_details} />
             )}
             {result.searches_remaining !== undefined && result.searches_remaining <= 5 && (
               <p style={{ color: "#888", fontSize: "12px", marginTop: "12px" }}>
