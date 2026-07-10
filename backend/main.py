@@ -99,6 +99,7 @@ def get_property_details(lat: float, lng: float) -> dict:
             "$limit": 1
         }
         response = requests.get(url, params=params, timeout=5)
+        print(f"Status: {response.status_code}, Body: {response.text[:200]}")
         data = response.json()
         if not data:
             return None
