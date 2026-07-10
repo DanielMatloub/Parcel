@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import psycopg2
 import anthropic
 import stripe
+import json
 from dotenv import load_dotenv
 import os
 
@@ -87,6 +88,39 @@ Key restrictions: [2-3 specific limits]"""
     interpretation = message.content[0].text
     cache_interpretation(zone_code, interpretation)
     return interpretation
+
+def get_property_details(lat: float, lng: float) -> dict:
+    import urllib.request
+    import urllib.parse
+    
+    query = f"within_circle(the_geom,{lat},{lng},50)&$order=closed_roll_year DESC&$limit=1"
+    url = f"https://data.sfgov.org/resource/wv5m-vpq2.json?$where={urllib.parse.quote(query)}"
+    
+    try:
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read())
+            if not data:
+                return None
+            p = data[0]
+            return {
+                "assessed_land_value": float(p.get("assessed_land_value", 0)),
+                "assessed_improvement_value": float(p.get("assessed_improvement_value", 0)),
+                "assessed_total_value": float(p.get("assessed_land_value", 0)) + float(p.get("assessed_improvement_value", 0)),
+                "year_built": p.get("year_property_built"),
+                "use_definition": p.get("use_definition"),
+                "property_area": p.get("property_area"),
+                "lot_area": p.get("lot_area"),
+                "bedrooms": p.get("number_of_bedrooms"),
+                "bathrooms": p.get("number_of_bathrooms"),
+                "stories": p.get("number_of_stories"),
+                "neighborhood": p.get("assessor_neighborhood"),
+                "last_sale_date": p.get("current_sales_date", "").split("T")[0] if p.get("current_sales_date") else None,
+                "data_year": p.get("closed_roll_year")
+            }
+    except Exception as e:
+        print(f"Property details error: {e}")
+        return None
 
 def get_ip_usage(ip: str):
     conn = get_db()
