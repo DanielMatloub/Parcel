@@ -98,7 +98,10 @@ def get_property_details(lat: float, lng: float) -> dict:
             "$order": "closed_roll_year DESC",
             "$limit": 1
         }
-        response = requests.get(url, params=params, timeout=5)
+        headers = {
+            "X-App-Token": os.getenv("DATASF_APP_TOKEN", "")
+        }
+        response = requests.get(url, params=params, headers=headers, timeout=5)
         data = response.json()
         if not data:
             return None
