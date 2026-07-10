@@ -4,6 +4,7 @@ import psycopg2
 import anthropic
 import stripe
 import json
+import requests
 from dotenv import load_dotenv
 import os
 
@@ -88,9 +89,8 @@ Key restrictions: [2-3 specific limits]"""
     interpretation = message.content[0].text
     cache_interpretation(zone_code, interpretation)
     return interpretation
+
 def get_property_details(lat: float, lng: float) -> dict:
-    import requests
-    
     try:
         url = "https://data.sfgov.org/resource/wv5m-vpq2.json"
         params = {
@@ -119,7 +119,7 @@ def get_property_details(lat: float, lng: float) -> dict:
             "data_year": p.get("closed_roll_year")
         }
     except Exception as e:
-        print(f"Property details error: {e}")
+        print(f"Property details error: {type(e).__name__}: {e}")
         return None
 
 def get_ip_usage(ip: str):
@@ -180,12 +180,14 @@ def get_zone(request: Request, lat: float, lng: float):
 
     increment_ip_usage(ip)
     interpretation = interpret_zone(row[0], row[1])
+    property_details = get_property_details(lat, lng)
 
     return {
         "zone_code": row[0],
         "district_name": row[1],
         "url": row[2],
         "interpretation": interpretation,
+        "property_details": property_details,
         "searches_remaining": FREE_LIMIT - search_count - 1
     }
 
