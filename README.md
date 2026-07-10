@@ -2,6 +2,8 @@
 
 Look up zoning laws and restrictions for any location in San Francisco.
 
+![Parcel desktop UI](screenshots/desktop.png)
+
 **Live demo:** https://parcel-chi-six.vercel.app
 
 ## Features
