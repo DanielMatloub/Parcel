@@ -89,7 +89,6 @@ Key restrictions: [2-3 specific limits]"""
     interpretation = message.content[0].text
     cache_interpretation(zone_code, interpretation)
     return interpretation
-
 def get_property_details(lat: float, lng: float) -> dict:
     try:
         url = "https://data.sfgov.org/resource/wv5m-vpq2.json"
@@ -102,7 +101,7 @@ def get_property_details(lat: float, lng: float) -> dict:
             "X-App-Token": os.getenv("DATASF_APP_TOKEN", "")
         }
         response = requests.get(url, params=params, headers=headers, timeout=5)
-	print(f"Status: {response.status_code}, Body: {response.text[:500]}")
+        print(f"Status: {response.status_code}, Body: {response.text[:500]}")
         data = response.json()
         if not data:
             return None
