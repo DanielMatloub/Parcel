@@ -178,7 +178,7 @@ export default function App() {
     window.location.href = data.url;
   }
 
-  const ResultPanel = () => (
+  const resultContent = (
     <>
       {loading && <p style={{ color: "#888", textAlign: "center" }}>Looking up zoning...</p>}
       {result && !loading && (
@@ -283,7 +283,7 @@ export default function App() {
               padding: "16px", maxHeight: "55vh", overflowY: "auto", zIndex: 1000
             }}>
               <div style={{ width: "40px", height: "4px", background: "#ddd", borderRadius: "2px", margin: "0 auto 16px", cursor: "pointer" }} onClick={() => setPanelOpen(false)} />
-              <ResultPanel />
+              {resultContent}
             </div>
           )}
         </div>
@@ -318,7 +318,7 @@ export default function App() {
           <button onClick={handleSearch} style={searchBarStyle.button}>Go</button>
         </div>
         <p style={{ color: "#666", fontSize: "14px" }}>Or click anywhere on the map.</p>
-        <ResultPanel />
+        {resultContent}
       </div>
     </div>
   );
