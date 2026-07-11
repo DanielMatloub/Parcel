@@ -22,6 +22,108 @@ const searchBarStyle = {
   wrapper: { display: "flex", gap: "8px" }
 };
 
+function PropertyDetails({ details, show, setShow }) {
+  return (
+    <div style={{ marginTop: "16px" }}>
+      <button
+        onClick={() => setShow(!show)}
+        style={{
+          background: "none", border: "1px solid #ddd", borderRadius: "8px",
+          padding: "8px 14px", fontSize: "13px", cursor: "pointer",
+          width: "100%", textAlign: "left", color: "#333"
+        }}
+      >
+        {show ? "▾" : "▸"} Property Details
+      </button>
+      {show && (
+        <div style={{
+          background: "#f9f9f9", borderRadius: "8px", padding: "12px 16px",
+          marginTop: "8px", fontSize: "13px", lineHeight: "1.8"
+        }}>
+          {details.assessed_total_value > 0 && (
+            <div><span style={{ color: "#888" }}>Assessed value</span><span style={{ float: "right", fontWeight: "600" }}>${details.assessed_total_value.toLocaleString()}</span></div>
+          )}
+          {details.assessed_land_value > 0 && (
+            <div><span style={{ color: "#888" }}>Land value</span><span style={{ float: "right" }}>${details.assessed_land_value.toLocaleString()}</span></div>
+          )}
+          {details.assessed_improvement_value > 0 && (
+            <div><span style={{ color: "#888" }}>Improvement value</span><span style={{ float: "right" }}>${details.assessed_improvement_value.toLocaleString()}</span></div>
+          )}
+          {details.use_definition && (
+            <div><span style={{ color: "#888" }}>Use type</span><span style={{ float: "right" }}>{details.use_definition}</span></div>
+          )}
+          {details.year_built && details.year_built !== "0" && (
+            <div><span style={{ color: "#888" }}>Year built</span><span style={{ float: "right" }}>{details.year_built}</span></div>
+          )}
+          {details.lot_area && parseFloat(details.lot_area) > 0 && (
+            <div><span style={{ color: "#888" }}>Lot area</span><span style={{ float: "right" }}>{parseFloat(details.lot_area).toLocaleString()} sq ft</span></div>
+          )}
+          {details.stories && parseFloat(details.stories) > 0 && (
+            <div><span style={{ color: "#888" }}>Stories</span><span style={{ float: "right" }}>{details.stories}</span></div>
+          )}
+          {details.neighborhood && (
+            <div><span style={{ color: "#888" }}>Neighborhood</span><span style={{ float: "right" }}>{details.neighborhood}</span></div>
+          )}
+          {details.last_sale_date && (
+            <div><span style={{ color: "#888" }}>Last sale</span><span style={{ float: "right" }}>{details.last_sale_date}</span></div>
+          )}
+          <div style={{ marginTop: "8px", fontSize: "11px", color: "#aaa" }}>
+            Data from SF Assessor-Recorder, {details.data_year}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BuildingPermits({ permits }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ marginTop: "12px" }}>
+      <button
+        onClick={() => setShow(!show)}
+        style={{
+          background: "none", border: "1px solid #ddd", borderRadius: "8px",
+          padding: "8px 14px", fontSize: "13px", cursor: "pointer",
+          width: "100%", textAlign: "left", color: "#333"
+        }}
+      >
+        {show ? "▾" : "▸"} Building Permits ({permits.length})
+      </button>
+      {show && (
+        <div style={{ marginTop: "8px" }}>
+          {permits.length === 0 ? (
+            <p style={{ color: "#888", fontSize: "13px", padding: "8px" }}>No permits found for this parcel.</p>
+          ) : (
+            permits.map((p, i) => (
+              <div key={i} style={{
+                background: "#f9f9f9", borderRadius: "8px", padding: "12px",
+                marginBottom: "8px", fontSize: "13px"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                  <span style={{ fontWeight: "600", textTransform: "capitalize" }}>{p.type}</span>
+                  <span style={{
+                    padding: "2px 8px", borderRadius: "12px", fontSize: "11px",
+                    background: p.status === "complete" ? "#e8f5e9" : p.status === "expired" ? "#fce4ec" : "#fff8e1",
+                    color: p.status === "complete" ? "#388e3c" : p.status === "expired" ? "#c62828" : "#f57f17"
+                  }}>
+                    {p.status}
+                  </span>
+                </div>
+                <div style={{ color: "#555", marginBottom: "4px" }}>{p.description}</div>
+                <div style={{ color: "#888", fontSize: "12px" }}>
+                  Filed: {p.filed_date}
+                  {p.estimated_cost > 0 && ` · Est. cost: $${p.estimated_cost.toLocaleString()}`}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [marker, setMarker] = useState(null);
   const [result, setResult] = useState(null);
@@ -76,106 +178,6 @@ export default function App() {
     window.location.href = data.url;
   }
 
-  const PropertyDetails = ({ details }) => (
-    <div style={{ marginTop: "16px" }}>
-      <button
-        onClick={() => setShowPropertyDetails(!showPropertyDetails)}
-        style={{
-          background: "none", border: "1px solid #ddd", borderRadius: "8px",
-          padding: "8px 14px", fontSize: "13px", cursor: "pointer",
-          width: "100%", textAlign: "left", color: "#333"
-        }}
-      >
-        {showPropertyDetails ? "▾" : "▸"} Property Details
-      </button>
-      {showPropertyDetails && (
-        <div style={{
-          background: "#f9f9f9", borderRadius: "8px", padding: "12px 16px",
-          marginTop: "8px", fontSize: "13px", lineHeight: "1.8"
-        }}>
-          {details.assessed_total_value > 0 && (
-            <div><span style={{ color: "#888" }}>Assessed value</span><span style={{ float: "right", fontWeight: "600" }}>${details.assessed_total_value.toLocaleString()}</span></div>
-          )}
-          {details.assessed_land_value > 0 && (
-            <div><span style={{ color: "#888" }}>Land value</span><span style={{ float: "right" }}>${details.assessed_land_value.toLocaleString()}</span></div>
-          )}
-          {details.assessed_improvement_value > 0 && (
-            <div><span style={{ color: "#888" }}>Improvement value</span><span style={{ float: "right" }}>${details.assessed_improvement_value.toLocaleString()}</span></div>
-          )}
-          {details.use_definition && (
-            <div><span style={{ color: "#888" }}>Use type</span><span style={{ float: "right" }}>{details.use_definition}</span></div>
-          )}
-          {details.year_built && details.year_built !== "0" && (
-            <div><span style={{ color: "#888" }}>Year built</span><span style={{ float: "right" }}>{details.year_built}</span></div>
-          )}
-          {details.lot_area && parseFloat(details.lot_area) > 0 && (
-            <div><span style={{ color: "#888" }}>Lot area</span><span style={{ float: "right" }}>{parseFloat(details.lot_area).toLocaleString()} sq ft</span></div>
-          )}
-          {details.stories && parseFloat(details.stories) > 0 && (
-            <div><span style={{ color: "#888" }}>Stories</span><span style={{ float: "right" }}>{details.stories}</span></div>
-          )}
-          {details.neighborhood && (
-            <div><span style={{ color: "#888" }}>Neighborhood</span><span style={{ float: "right" }}>{details.neighborhood}</span></div>
-          )}
-          {details.last_sale_date && (
-            <div><span style={{ color: "#888" }}>Last sale</span><span style={{ float: "right" }}>{details.last_sale_date}</span></div>
-          )}
-          <div style={{ marginTop: "8px", fontSize: "11px", color: "#aaa" }}>
-            Data from SF Assessor-Recorder, {details.data_year}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const BuildingPermits = ({ permits }) => {
-    const [showPermits, setShowPermits] = useState(false);
-    return (
-      <div style={{ marginTop: "12px" }}>
-        <button
-          onClick={() => setShowPermits(!showPermits)}
-          style={{
-            background: "none", border: "1px solid #ddd", borderRadius: "8px",
-            padding: "8px 14px", fontSize: "13px", cursor: "pointer",
-            width: "100%", textAlign: "left", color: "#333"
-          }}
-        >
-          {showPermits ? "▾" : "▸"} Building Permits ({permits.length})
-        </button>
-        {showPermits && (
-          <div style={{ marginTop: "8px" }}>
-            {permits.length === 0 ? (
-              <p style={{ color: "#888", fontSize: "13px", padding: "8px" }}>No permits found for this parcel.</p>
-            ) : (
-              permits.map((p, i) => (
-                <div key={i} style={{
-                  background: "#f9f9f9", borderRadius: "8px", padding: "12px",
-                  marginBottom: "8px", fontSize: "13px"
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                    <span style={{ fontWeight: "600", textTransform: "capitalize" }}>{p.type}</span>
-                    <span style={{
-                      padding: "2px 8px", borderRadius: "12px", fontSize: "11px",
-                      background: p.status === "complete" ? "#e8f5e9" : p.status === "expired" ? "#fce4ec" : "#fff8e1",
-                      color: p.status === "complete" ? "#388e3c" : p.status === "expired" ? "#c62828" : "#f57f17"
-                    }}>
-                      {p.status}
-                    </span>
-                  </div>
-                  <div style={{ color: "#555", marginBottom: "4px" }}>{p.description}</div>
-                  <div style={{ color: "#888", fontSize: "12px" }}>
-                    Filed: {p.filed_date}
-                    {p.estimated_cost > 0 && ` · Est. cost: $${p.estimated_cost.toLocaleString()}`}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const ResultPanel = () => (
     <>
       {loading && <p style={{ color: "#888", textAlign: "center" }}>Looking up zoning...</p>}
@@ -214,7 +216,11 @@ export default function App() {
               </a>
             )}
             {result.property_details && (
-              <PropertyDetails details={result.property_details} />
+              <PropertyDetails
+                details={result.property_details}
+                show={showPropertyDetails}
+                setShow={setShowPropertyDetails}
+              />
             )}
             {result.permits !== undefined && (
               <BuildingPermits permits={result.permits} />
