@@ -128,6 +128,54 @@ export default function App() {
     </div>
   );
 
+  const BuildingPermits = ({ permits }) => {
+    const [showPermits, setShowPermits] = useState(false);
+    return (
+      <div style={{ marginTop: "12px" }}>
+        <button
+          onClick={() => setShowPermits(!showPermits)}
+          style={{
+            background: "none", border: "1px solid #ddd", borderRadius: "8px",
+            padding: "8px 14px", fontSize: "13px", cursor: "pointer",
+            width: "100%", textAlign: "left", color: "#333"
+          }}
+        >
+          {showPermits ? "▾" : "▸"} Building Permits ({permits.length})
+        </button>
+        {showPermits && (
+          <div style={{ marginTop: "8px" }}>
+            {permits.length === 0 ? (
+              <p style={{ color: "#888", fontSize: "13px", padding: "8px" }}>No permits found for this parcel.</p>
+            ) : (
+              permits.map((p, i) => (
+                <div key={i} style={{
+                  background: "#f9f9f9", borderRadius: "8px", padding: "12px",
+                  marginBottom: "8px", fontSize: "13px"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <span style={{ fontWeight: "600", textTransform: "capitalize" }}>{p.type}</span>
+                    <span style={{
+                      padding: "2px 8px", borderRadius: "12px", fontSize: "11px",
+                      background: p.status === "complete" ? "#e8f5e9" : p.status === "expired" ? "#fce4ec" : "#fff8e1",
+                      color: p.status === "complete" ? "#388e3c" : p.status === "expired" ? "#c62828" : "#f57f17"
+                    }}>
+                      {p.status}
+                    </span>
+                  </div>
+                  <div style={{ color: "#555", marginBottom: "4px" }}>{p.description}</div>
+                  <div style={{ color: "#888", fontSize: "12px" }}>
+                    Filed: {p.filed_date}
+                    {p.estimated_cost > 0 && ` · Est. cost: $${p.estimated_cost.toLocaleString()}`}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const ResultPanel = () => (
     <>
       {loading && <p style={{ color: "#888", textAlign: "center" }}>Looking up zoning...</p>}
@@ -167,6 +215,9 @@ export default function App() {
             )}
             {result.property_details && (
               <PropertyDetails details={result.property_details} />
+            )}
+            {result.permits !== undefined && (
+              <BuildingPermits permits={result.permits} />
             )}
             {result.searches_remaining !== undefined && result.searches_remaining <= 5 && (
               <p style={{ color: "#888", fontSize: "12px", marginTop: "12px" }}>
