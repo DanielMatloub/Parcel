@@ -118,11 +118,43 @@ def get_property_details(lat: float, lng: float) -> dict:
             "stories": p.get("number_of_stories"),
             "neighborhood": p.get("assessor_neighborhood"),
             "last_sale_date": p.get("current_sales_date", "").split("T")[0] if p.get("current_sales_date") else None,
-            "data_year": p.get("closed_roll_year")
+            "data_year": p.get("closed_roll_year"),
+            "block": p.get("block"),
+            "lot": p.get("lot")
         }
     except Exception as e:
         print(f"Property details error: {type(e).__name__}: {e}")
         return None
+
+def get_building_permits(block: str, lot: str) -> list:
+    try:
+        url = "https://data.sfgov.org/resource/i98e-djp9.json"
+        params = {
+            "$where": f"block='{block}' AND lot='{lot}'",
+            "$order": "filed_date DESC",
+            "$limit": 5
+        }
+        headers = {
+            "X-App-Token": os.getenv("DATASF_APP_TOKEN", "")
+        }
+        response = requests.get(url, params=params, headers=headers, timeout=5)
+        data = response.json()
+        if not data:
+            return []
+        permits = []
+        for p in data:
+            permits.append({
+                "permit_number": p.get("permit_number"),
+                "type": p.get("permit_type_definition"),
+                "description": p.get("description", "")[:150],
+                "status": p.get("status"),
+                "filed_date": p.get("filed_date", "").split("T")[0],
+                "estimated_cost": float(p.get("estimated_cost", 0)) if p.get("estimated_cost") else None,
+            })
+        return permits
+    except Exception as e:
+        print(f"Permits error: {type(e).__name__}: {e}")
+        return []
 
 def get_ip_usage(ip: str):
     conn = get_db()
@@ -183,6 +215,10 @@ def get_zone(request: Request, lat: float, lng: float):
     increment_ip_usage(ip)
     interpretation = interpret_zone(row[0], row[1])
     property_details = get_property_details(lat, lng)
+    
+    permits = []
+    if property_details and property_details.get("block"):
+        permits = get_building_permits(property_details["block"], property_details["lot"])
 
     return {
         "zone_code": row[0],
@@ -190,6 +226,7 @@ def get_zone(request: Request, lat: float, lng: float):
         "url": row[2],
         "interpretation": interpretation,
         "property_details": property_details,
+        "permits": permits,
         "searches_remaining": FREE_LIMIT - search_count - 1
     }
 
