@@ -11,6 +11,8 @@ Look up zoning laws and restrictions for any location in San Francisco.
 - Address search with map flyTo
 - Click anywhere on the map
 - Plain-English zoning interpretations powered by Claude
+- Property assessment data (assessed value, year built, lot area, and more)
+- Building permit history per parcel
 - Responsive — desktop sidebar and mobile bottom sheet
 - 30 free searches per user, then $5 for unlimited via Stripe
 - Interpretation caching to minimize API costs
@@ -24,6 +26,8 @@ Click anywhere on the map or search an address to instantly see:
 - The zoning code and district name for that location
 - A plain-English explanation of what you can build or do there
 - A link to the official San Francisco Planning Code
+- Property assessment data from the SF Assessor-Recorder
+- Recent building permit history for the parcel
 
 ## Tech stack
 
@@ -31,6 +35,7 @@ Click anywhere on the map or search an address to instantly see:
 - **Backend:** FastAPI (Python)
 - **Database:** PostgreSQL + PostGIS (Supabase)
 - **AI:** Anthropic Claude API
+- **Data:** DataSF (zoning, assessor records, building permits)
 - **Payments:** Stripe
 - **Deployment:** Railway (backend), Vercel (frontend)
 
@@ -42,7 +47,9 @@ Click anywhere on the map or search an address to instantly see:
 4. PostGIS runs an `ST_Intersects` query to find the matching zoning district
 5. Zone code is checked against the interpretation cache — if cached, returns instantly
 6. If not cached, Claude generates a plain-English interpretation and caches it
-7. Result is displayed in the sidebar (desktop) or bottom sheet (mobile)
+7. SF Assessor-Recorder API returns property assessment data for the parcel
+8. Building permits are fetched from DataSF by block and lot number
+9. Result is displayed in the sidebar (desktop) or bottom sheet (mobile)
 
 ## Running locally
 
@@ -70,7 +77,12 @@ Add a `.env` file in `backend/` with:
 ```bash
 ANTHROPIC_API_KEY=your-key-here
 STRIPE_SECRET_KEY=your-key-here
+DATASF_APP_TOKEN=your-token-here
 ```
 ## Data
 
-Zoning data sourced from [DataSF](https://data.sfgov.org/Geographic-Locations-and-Boundaries/Zoning-Map-Zoning-Districts/3i4a-hu95) — 10,617 zoning districts covering all of San Francisco.
+## Data
+
+- Zoning data from [DataSF](https://data.sfgov.org/Geographic-Locations-and-Boundaries/Zoning-Map-Zoning-Districts/3i4a-hu95) — 10,617 zoning districts covering all of San Francisco
+- Property assessments from the [SF Assessor-Recorder](https://data.sfgov.org/Housing-and-Buildings/Assessor-Historical-Secured-Property-Tax-Rolls/wv5m-vpq2)
+- Building permits from the [SF Department of Building Inspection](https://data.sfgov.org/Housing-and-Buildings/Building-Permits/i98e-djp9)
