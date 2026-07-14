@@ -170,10 +170,31 @@ def get_environmental_risks(lat: float, lng: float) -> dict:
         in_seismic_zone = cur.fetchone()[0] > 0
         conn.close()
 
-        risks = {
-            "seismic_hazard_zone": in_seismic_zone,
+        # FEMA flood zone lookup
+        fema_url = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query"
+        fema_params = {
+            "geometry": f"{lng},{lat}",
+            "geometryType": "esriGeometryPoint",
+            "inSR": "4326",
+            "spatialRel": "esriSpatialRelIntersects",
+            "outFields": "FLD_ZONE,ZONE_SUBTY",
+            "returnGeometry": "false",
+            "f": "json"
         }
-        return risks
+        fema_response = requests.get(fema_url, params=fema_params, timeout=5)
+        fema_data = fema_response.json()
+        flood_zone = None
+        flood_zone_description = None
+        if fema_data.get("features"):
+            attrs = fema_data["features"][0]["attributes"]
+            flood_zone = attrs.get("FLD_ZONE")
+            flood_zone_description = attrs.get("ZONE_SUBTY")
+
+        return {
+            "seismic_hazard_zone": in_seismic_zone,
+            "flood_zone": flood_zone,
+            "flood_zone_description": flood_zone_description,
+        }
     except Exception as e:
         print(f"Environmental risks error: {type(e).__name__}: {e}")
         return None
