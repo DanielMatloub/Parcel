@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, useMapEvents, Marker, Popup, Polygon } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import ReactMarkdown from "react-markdown";
 import L from "leaflet";
@@ -126,7 +126,7 @@ function BuildingPermits({ permits }) {
 
 function EnvironmentalRisks({ risks }) {
   const [show, setShow] = useState(false);
-  
+
   const floodRiskLevel = (zone) => {
     if (!zone) return null;
     if (zone.startsWith("A") || zone.startsWith("V")) return { level: "High", color: "#c62828", bg: "#fce4ec" };
@@ -196,6 +196,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [searchQuery, setSearchQuery] = useState("");
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
+  const [boundary, setBoundary] = useState(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -210,9 +211,20 @@ export default function App() {
     setResult(null);
     setShowPropertyDetails(false);
     setPanelOpen(true);
-    const res = await fetch(`https://parcel-production-970b.up.railway.app/zone?lat=${lat}&lng=${lng}`);
-    const data = await res.json();
+    setBoundary(null);
+
+    const [zoneRes, boundaryRes] = await Promise.all([
+      fetch(`https://parcel-production-970b.up.railway.app/zone?lat=${lat}&lng=${lng}`),
+      fetch(`https://parcel-production-970b.up.railway.app/zone-boundary?lat=${lat}&lng=${lng}`)
+    ]);
+
+    const data = await zoneRes.json();
+    const boundaryData = await boundaryRes.json();
+
     setResult(data);
+    if (boundaryData.geometry) {
+      setBoundary(boundaryData.geometry.coordinates);
+    }
     setLoading(false);
   }
 
@@ -332,6 +344,12 @@ export default function App() {
                 <Popup>{result?.zone_code || "Loading..."}</Popup>
               </Marker>
             )}
+            {boundary && (
+              <Polygon
+                positions={boundary[0].map(([lng, lat]) => [lat, lng])}
+                pathOptions={{ color: "#2563eb", fillColor: "#2563eb", fillOpacity: 0.15, weight: 2 }}
+              />
+            )}
           </MapContainer>
           {!panelOpen && (
             <div style={{
@@ -368,6 +386,12 @@ export default function App() {
             <Marker position={[marker.lat, marker.lng]}>
               <Popup>{result?.zone_code || "Loading..."}</Popup>
             </Marker>
+          )}
+          {boundary && (
+            <Polygon
+              positions={boundary[0].map(([lng, lat]) => [lat, lng])}
+              pathOptions={{ color: "#2563eb", fillColor: "#2563eb", fillOpacity: 0.15, weight: 2 }}
+            />
           )}
         </MapContainer>
       </div>
