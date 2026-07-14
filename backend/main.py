@@ -275,6 +275,25 @@ def get_zone(request: Request, lat: float, lng: float):
         "searches_remaining": FREE_LIMIT - search_count - 1
     }
 
+@app.get("/zone-boundary")
+def get_zone_boundary(lat: float, lng: float):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT ST_AsGeoJSON(geometry)
+        FROM zoning_districts
+        WHERE ST_Intersects(
+            ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+            geometry
+        )
+        LIMIT 1
+    """, (lng, lat))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return {"geometry": None}
+    return {"geometry": json.loads(row[0])}
+
 @app.post("/create-checkout-session")
 async def create_checkout_session(request: Request):
     ip = request.headers.get("x-forwarded-for", request.client.host)
