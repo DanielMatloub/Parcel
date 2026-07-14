@@ -124,6 +124,70 @@ function BuildingPermits({ permits }) {
   );
 }
 
+function EnvironmentalRisks({ risks }) {
+  const [show, setShow] = useState(false);
+  
+  const floodRiskLevel = (zone) => {
+    if (!zone) return null;
+    if (zone.startsWith("A") || zone.startsWith("V")) return { level: "High", color: "#c62828", bg: "#fce4ec" };
+    if (zone === "X" || zone === "B" || zone === "C") return { level: "Low", color: "#388e3c", bg: "#e8f5e9" };
+    return { level: "Moderate", color: "#f57f17", bg: "#fff8e1" };
+  };
+
+  const flood = floodRiskLevel(risks.flood_zone);
+
+  return (
+    <div style={{ marginTop: "12px" }}>
+      <button
+        onClick={() => setShow(!show)}
+        style={{
+          background: "none", border: "1px solid #ddd", borderRadius: "8px",
+          padding: "8px 14px", fontSize: "13px", cursor: "pointer",
+          width: "100%", textAlign: "left", color: "#333"
+        }}
+      >
+        {show ? "▾" : "▸"} Environmental Risks
+      </button>
+      {show && (
+        <div style={{
+          background: "#f9f9f9", borderRadius: "8px", padding: "12px 16px",
+          marginTop: "8px", fontSize: "13px", lineHeight: "2"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#888" }}>Seismic hazard zone</span>
+            <span style={{
+              padding: "2px 8px", borderRadius: "12px", fontSize: "11px",
+              background: risks.seismic_hazard_zone ? "#fce4ec" : "#e8f5e9",
+              color: risks.seismic_hazard_zone ? "#c62828" : "#388e3c"
+            }}>
+              {risks.seismic_hazard_zone ? "Yes" : "No"}
+            </span>
+          </div>
+          {risks.flood_zone && flood && (
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "#888" }}>Flood zone ({risks.flood_zone})</span>
+              <span style={{
+                padding: "2px 8px", borderRadius: "12px", fontSize: "11px",
+                background: flood.bg, color: flood.color
+              }}>
+                {flood.level} risk
+              </span>
+            </div>
+          )}
+          {risks.flood_zone_description && (
+            <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>
+              {risks.flood_zone_description}
+            </div>
+          )}
+          <div style={{ marginTop: "8px", fontSize: "11px", color: "#aaa" }}>
+            Seismic data from SF DBI · Flood data from FEMA NFHL
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [marker, setMarker] = useState(null);
   const [result, setResult] = useState(null);
@@ -224,6 +288,9 @@ export default function App() {
             )}
             {result.permits !== undefined && (
               <BuildingPermits permits={result.permits} />
+            )}
+            {result.environmental_risks && (
+              <EnvironmentalRisks risks={result.environmental_risks} />
             )}
             {result.searches_remaining !== undefined && result.searches_remaining <= 5 && (
               <p style={{ color: "#888", fontSize: "12px", marginTop: "12px" }}>
