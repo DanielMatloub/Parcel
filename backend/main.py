@@ -156,6 +156,28 @@ def get_building_permits(block: str, lot: str) -> list:
         print(f"Permits error: {type(e).__name__}: {e}")
         return []
 
+def get_environmental_risks(lat: float, lng: float) -> dict:
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COUNT(*) FROM seismic_hazard_zones
+            WHERE ST_Intersects(
+                ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+                geometry
+            )
+        """, (lng, lat))
+        in_seismic_zone = cur.fetchone()[0] > 0
+        conn.close()
+
+        risks = {
+            "seismic_hazard_zone": in_seismic_zone,
+        }
+        return risks
+    except Exception as e:
+        print(f"Environmental risks error: {type(e).__name__}: {e}")
+        return None
+
 def get_ip_usage(ip: str):
     conn = get_db()
     cur = conn.cursor()
@@ -215,7 +237,8 @@ def get_zone(request: Request, lat: float, lng: float):
     increment_ip_usage(ip)
     interpretation = interpret_zone(row[0], row[1])
     property_details = get_property_details(lat, lng)
-    
+    environmental_risks = get_environmental_risks(lat, lng)
+
     permits = []
     if property_details and property_details.get("block"):
         permits = get_building_permits(property_details["block"], property_details["lot"])
@@ -227,6 +250,7 @@ def get_zone(request: Request, lat: float, lng: float):
         "interpretation": interpretation,
         "property_details": property_details,
         "permits": permits,
+        "environmental_risks": environmental_risks,
         "searches_remaining": FREE_LIMIT - search_count - 1
     }
 
