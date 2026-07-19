@@ -286,10 +286,19 @@ export default function App() {
             <div style={{ fontSize: "14px", lineHeight: "1.6", color: "#333", marginBottom: "12px" }}>
               <ReactMarkdown>{result.interpretation}</ReactMarkdown>
             </div>
-            {result.url && (
+{result.url && (
               <a href={result.url} target="_blank" rel="noreferrer" style={{ fontSize: "13px", color: "#0066cc" }}>
                 View official planning code →
               </a>
+            )}
+            {result.risk_analysis && (
+              <div style={{
+                background: "#fff", border: "1px solid #e5e5e5", borderRadius: "8px",
+                padding: "14px 16px", marginTop: "16px", marginBottom: "4px"
+              }}>
+                <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>Risk Analysis</div>
+                <div style={{ fontSize: "13px", lineHeight: "1.7", color: "#333" }}>{result.risk_analysis}</div>
+              </div>
             )}
             {result.property_details && (
               <PropertyDetails
