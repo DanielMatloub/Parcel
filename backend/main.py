@@ -199,6 +199,49 @@ def get_environmental_risks(lat: float, lng: float) -> dict:
         print(f"Environmental risks error: {type(e).__name__}: {e}")
         return None
 
+def get_risk_analysis(zone_code: str, district_name: str, property_details: dict, environmental_risks: dict) -> str:
+    try:
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        
+        seismic = environmental_risks.get("seismic_hazard_zone", False) if environmental_risks else False
+        flood_zone = environmental_risks.get("flood_zone", "Unknown") if environmental_risks else "Unknown"
+        flood_desc = environmental_risks.get("flood_zone_description", "") if environmental_risks else ""
+        
+        property_context = ""
+        if property_details:
+            property_context = f"""
+Property details:
+- Assessed value: ${property_details.get('assessed_total_value', 0):,.0f}
+- Use type: {property_details.get('use_definition', 'Unknown')}
+- Year built: {property_details.get('year_built', 'Unknown')}
+- Neighborhood: {property_details.get('neighborhood', 'Unknown')}
+- Stories: {property_details.get('stories', 'Unknown')}
+"""
+
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=512,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""You are a real estate risk analyst. Analyze this San Francisco parcel and provide a concise risk assessment for a developer or investor.
+
+Zone: {zone_code} — {district_name}
+Seismic hazard zone: {"Yes" if seismic else "No"}
+Flood zone: {flood_zone} ({flood_desc})
+{property_context}
+
+Respond in exactly this format, 3-4 sentences total, no headers, no bullets:
+
+Start with the biggest risk or opportunity. Then mention 1-2 specific regulatory or environmental constraints. End with a one-sentence bottom line for an investor or developer."""
+                }
+            ]
+        )
+        return message.content[0].text
+    except Exception as e:
+        print(f"Risk analysis error: {type(e).__name__}: {e}")
+        return None
+
 def get_ip_usage(ip: str):
     conn = get_db()
     cur = conn.cursor()
@@ -259,6 +302,7 @@ def get_zone(request: Request, lat: float, lng: float):
     interpretation = interpret_zone(row[0], row[1])
     property_details = get_property_details(lat, lng)
     environmental_risks = get_environmental_risks(lat, lng)
+    risk_analysis = get_risk_analysis(row[0], row[1], property_details, environmental_risks)
 
     permits = []
     if property_details and property_details.get("block"):
@@ -272,6 +316,7 @@ def get_zone(request: Request, lat: float, lng: float):
         "property_details": property_details,
         "permits": permits,
         "environmental_risks": environmental_risks,
+        "risk_analysis": risk_analysis,
         "searches_remaining": FREE_LIMIT - search_count - 1
     }
 
