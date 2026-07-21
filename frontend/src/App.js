@@ -113,16 +113,34 @@ function EnvironmentalRisks({ risks }) {
   );
 }
 
-function RiskAnalysis({ analysis }) {
+function RiskAnalysis({ lat, lng }) {
   const [show, setShow] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleOpen() {
+    if (!show && !analysis) {
+      setLoading(true);
+      try {
+        const res = await fetch(`https://parcel-production-970b.up.railway.app/risk-analysis?lat=${lat}&lng=${lng}`);
+        const data = await res.json();
+        setAnalysis(data.risk_analysis);
+      } catch (e) {
+        setAnalysis("Unable to load risk analysis.");
+      }
+      setLoading(false);
+    }
+    setShow(!show);
+  }
+
   return (
     <div style={{ marginTop: "12px" }}>
-      <button onClick={() => setShow(!show)} style={{ background: "none", border: "1px solid #ddd", borderRadius: "8px", padding: "8px 14px", fontSize: "13px", cursor: "pointer", width: "100%", textAlign: "left", color: "#333" }}>
+      <button onClick={handleOpen} style={{ background: "none", border: "1px solid #ddd", borderRadius: "8px", padding: "8px 14px", fontSize: "13px", cursor: "pointer", width: "100%", textAlign: "left", color: "#333" }}>
         {show ? "▾" : "▸"} Risk Analysis
       </button>
       {show && (
         <div style={{ background: "#f9f9f9", borderRadius: "8px", padding: "12px 16px", marginTop: "8px", fontSize: "13px", lineHeight: "1.7", color: "#333" }}>
-          {analysis}
+          {loading ? <span style={{ color: "#888" }}>Analyzing...</span> : analysis}
         </div>
       )}
     </div>
@@ -138,6 +156,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   const [boundary, setBoundary] = useState(null);
+  const [clickedLatLng, setClickedLatLng] = useState(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -148,6 +167,7 @@ export default function App() {
 
   async function handleMapClick({ lat, lng }) {
     setMarker({ lat, lng });
+    setClickedLatLng({ lat, lng });
     setLoading(true);
     setResult(null);
     setShowPropertyDetails(false);
@@ -219,7 +239,7 @@ export default function App() {
                 View official planning code →
               </a>
             )}
-            {result.risk_analysis && <RiskAnalysis analysis={result.risk_analysis} />}
+            {clickedLatLng && <RiskAnalysis lat={clickedLatLng.lat} lng={clickedLatLng.lng} />}
             {result.property_details && <PropertyDetails details={result.property_details} show={showPropertyDetails} setShow={setShowPropertyDetails} />}
             {result.permits !== undefined && <BuildingPermits permits={result.permits} />}
             {result.environmental_risks && <EnvironmentalRisks risks={result.environmental_risks} />}
