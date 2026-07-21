@@ -119,18 +119,22 @@ function RiskAnalysis({ lat, lng }) {
   const [loading, setLoading] = useState(false);
 
   async function handleOpen() {
-    if (!show && !analysis) {
-      setLoading(true);
-      try {
-        const res = await fetch(`https://parcel-production-970b.up.railway.app/risk-analysis?lat=${lat}&lng=${lng}`);
-        const data = await res.json();
-        setAnalysis(data.risk_analysis);
-      } catch (e) {
-        setAnalysis("Unable to load risk analysis.");
+    if (!show) {
+      setShow(true);
+      if (!analysis) {
+        setLoading(true);
+        try {
+          const res = await fetch(`https://parcel-production-970b.up.railway.app/risk-analysis?lat=${lat}&lng=${lng}`);
+          const data = await res.json();
+          setAnalysis(data.risk_analysis);
+        } catch (e) {
+          setAnalysis("Unable to load risk analysis.");
+        }
+        setLoading(false);
       }
-      setLoading(false);
+    } else {
+      setShow(false);
     }
-    setShow(!show);
   }
 
   return (
