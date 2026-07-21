@@ -89,6 +89,7 @@ Key restrictions: [2-3 specific limits]"""
     interpretation = message.content[0].text
     cache_interpretation(zone_code, interpretation)
     return interpretation
+
 def get_property_details(lat: float, lng: float) -> dict:
     try:
         url = "https://data.sfgov.org/resource/wv5m-vpq2.json"
@@ -170,7 +171,6 @@ def get_environmental_risks(lat: float, lng: float) -> dict:
         in_seismic_zone = cur.fetchone()[0] > 0
         conn.close()
 
-        # FEMA flood zone lookup
         fema_url = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query"
         fema_params = {
             "geometry": f"{lng},{lat}",
@@ -202,11 +202,11 @@ def get_environmental_risks(lat: float, lng: float) -> dict:
 def get_risk_analysis(zone_code: str, district_name: str, property_details: dict, environmental_risks: dict) -> str:
     try:
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        
+
         seismic = environmental_risks.get("seismic_hazard_zone", False) if environmental_risks else False
         flood_zone = environmental_risks.get("flood_zone", "Unknown") if environmental_risks else "Unknown"
         flood_desc = environmental_risks.get("flood_zone_description", "") if environmental_risks else ""
-        
+
         property_context = ""
         if property_details:
             property_context = f"""
@@ -302,7 +302,6 @@ def get_zone(request: Request, lat: float, lng: float):
     interpretation = interpret_zone(row[0], row[1])
     property_details = get_property_details(lat, lng)
     environmental_risks = get_environmental_risks(lat, lng)
-    risk_analysis = get_risk_analysis(row[0], row[1], property_details, environmental_risks)
 
     permits = []
     if property_details and property_details.get("block"):
@@ -316,7 +315,6 @@ def get_zone(request: Request, lat: float, lng: float):
         "property_details": property_details,
         "permits": permits,
         "environmental_risks": environmental_risks,
-        "risk_analysis": risk_analysis,
         "searches_remaining": FREE_LIMIT - search_count - 1
     }
 
@@ -338,6 +336,31 @@ def get_zone_boundary(lat: float, lng: float):
     if not row:
         return {"geometry": None}
     return {"geometry": json.loads(row[0])}
+
+@app.get("/risk-analysis")
+def risk_analysis_endpoint(lat: float, lng: float):
+    property_details = get_property_details(lat, lng)
+    environmental_risks = get_environmental_risks(lat, lng)
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT zoning_sim, districtna
+        FROM zoning_districts
+        WHERE ST_Intersects(
+            ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+            geometry
+        )
+        LIMIT 1
+    """, (lng, lat))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return {"risk_analysis": None}
+
+    analysis = get_risk_analysis(row[0], row[1], property_details, environmental_risks)
+    return {"risk_analysis": analysis}
 
 @app.post("/create-checkout-session")
 async def create_checkout_session(request: Request):
